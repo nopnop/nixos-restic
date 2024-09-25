@@ -1,4 +1,4 @@
-{ 
+{
   description = "My restic tooling to backup & restore my files";
 
   inputs = {
@@ -6,21 +6,31 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }: {
-    flake-utils.lib.eachSystem (system:
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
           inherit system;
         };
-      in {
-        packages = {
-          restic = pkgs.writeShellApplication {
-            name = "restic";
-            runtimeInputs = [ pkgs.restic ];
-            text = builtins.readFile ./backup.sh;
-          };
+
+        backup = pkgs.writeShellApplication {
+          name = "backup";
+          runtimeInputs = [ pkgs.restic ];
+          text = builtins.readFile ./backup.sh;
         };
+
+      in
+      {
+        packages = {
+          backup = backup;
+        };
+
+        devShell = pkgs.mkShell {
+          buildInputs = [ pkgs.restic pkgs.direnv backup];
+        };
+
+        defaultPackage = backup;
       }
     );
-  };
+
 }
